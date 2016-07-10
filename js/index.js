@@ -1,14 +1,15 @@
-var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game', { preload: preload, create: create, update: update, render: render });
-var player;
-var speed = 200;
+var Cultrum = function (game) {}
 
-function preload() {
-  game.load.image('sky', 'assets/sky.png');
-  game.load.image('star', 'assets/star.png');
-  game.load.image('tree', 'assets/tree.png', 32, 32);
-}
+// Load images and sounds
+Cultrum.prototype.preload = function () {
+    this.game.load.image('star', 'assets/star.png');
+    this.game.load.image('tree', 'assets/tree.png', 32, 32);
+};
 
-function create() {
+Cultrum.prototype.create = function () {
+  this.player = null;
+  this.speed = 200;
+
   // Change the BG color
   game.stage.backgroundColor = 0x4488cc;
 
@@ -30,36 +31,41 @@ function create() {
     });
   }
   // Add a player
-  player = game.add.graphics(32, 32);
-  player.beginFill(0xff0000);
-  player.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
-  player.moveTo(0, -16);
-  player.lineTo(16, 0);
-  player.lineTo(0, 16);
-  player.endFill();
+  this.player = game.add.graphics(32, 32);
+  this.player.beginFill(0xff0000);
+  this.player.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
+  this.player.moveTo(0, -16);
+  this.player.lineTo(16, 0);
+  this.player.lineTo(0, 16);
+  this.player.endFill();
 
   // Listen for clicks and move the character
-  game.input.onDown.add(moveCharacter, this);
+  game.input.onDown.add(this.moveCharacter, this);
 }
 
-function update() {
+Cultrum.prototype.update = function () {
+  //
 }
 
-function render() {
+Cultrum.prototype.render = function () {
   // Just renders out the pointer data when you touch the canvas
   game.debug.pointer(game.input.mousePointer);
   // Show FPS
   game.debug.text(game.time.fps || '--', 2, 14, "#FF0000");
 }
 
-function moveCharacter(pointer) {
+Cultrum.prototype.moveCharacter = function (pointer) {
   // Set the character rotation
-  player.rotation = game.physics.arcade.angleToPointer(player, pointer);
+  this.player.rotation = game.physics.arcade.angleToPointer(this.player, pointer);
 
   // Calculate the distance
-  var duration = (game.physics.arcade.distanceToPointer(player, pointer) / speed) * 1000;
+  var duration = (game.physics.arcade.distanceToPointer(this.player, pointer) / this.speed) * 1000;
   // Stop the previous tween
-  player.tween && player.tween.stop();
+  this.player.tween && this.player.tween.stop();
   // And start a new one
-  player.tween = game.add.tween(player).to({ x: pointer.x, y: pointer.y }, duration, Phaser.Easing.Linear.None, true);
+  this.player.tween = game.add.tween(this.player).to({ x: pointer.x, y: pointer.y }, duration, Phaser.Easing.Linear.None, true);
 }
+
+// Setup game
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game');
+game.state.add('game', Cultrum, true);
