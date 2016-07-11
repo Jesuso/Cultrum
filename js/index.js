@@ -115,6 +115,18 @@ Cultrum.Player.CreateSprite = function (game) {
 }
 
 /**
+ * A tree entity, this should extend a more basic class in the future
+ */
+Cultrum.Tree = function () {}
+
+/**
+ * Runs when a player clicks the tree.
+ */
+Cultrum.Tree.onClick = function () {
+  // 
+}
+
+/**
  * Launches the game. This should be executed when the document finishes loading.
  */
 function launch () {
