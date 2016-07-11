@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+}
+
+.resources {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-right: 16px;
+}
+
+.resources > ul > li {
+  list-style: none;
+}

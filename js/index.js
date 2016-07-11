@@ -11,6 +11,9 @@ Cultrum.prototype.create = function () {
   this.speed = 200;
   this.trees = [];
 
+  // Advanced profiling, including the fps rate, fps min/max, suggestedFps and msMin/msMax are updated
+  this.game.time.advancedTiming = true;
+
   // Change the BG color
   this.game.stage.backgroundColor = 0x4488cc;
 
@@ -29,13 +32,8 @@ Cultrum.prototype.create = function () {
   }
 
   // Add a player
-  this.player = this.game.add.graphics(32, 32);
-  this.player.beginFill(0xff0000);
-  this.player.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
-  this.player.moveTo(0, -16);
-  this.player.lineTo(16, 0);
-  this.player.lineTo(0, 16);
-  this.player.endFill();
+  this.player = Cultrum.Player.CreateSprite(this.game);
+  Cultrum.Player.CreateSprite(this.game);
 
   // Listen for clicks and move the character
   this.game.input.onDown.add(this.moveCharacter, this);
@@ -84,7 +82,7 @@ Cultrum.prototype.render = function () {
   // this.game.debug.pointer(this.game.input.mousePointer);
 
   // Show FPS
-  this.game.debug.text(this.game.time.fps || '--', 2, 14, "#FF0000");
+  this.game.debug.text(this.game.time.fps || '--', 2, 14, "#00FF00");
 
   // Show the line
   this.game.debug.geom(this.line, 'rgb(0,255,0)');
@@ -102,6 +100,25 @@ Cultrum.prototype.moveCharacter = function (pointer) {
   this.player.tween = this.game.add.tween(this.player).to({ x: pointer.x, y: pointer.y }, duration, Phaser.Easing.Linear.None, true);
 }
 
-// Setup game
-var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game');
-game.state.add('game', Cultrum, true);
+Cultrum.Player = function () {}
+
+Cultrum.Player.CreateSprite = function (game) {
+  var graphics = game.add.graphics(32, 32);
+  graphics.beginFill(0xff0000);
+  graphics.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
+  graphics.moveTo(0, -16);
+  graphics.lineTo(16, 0);
+  graphics.lineTo(0, 16);
+  graphics.endFill();
+
+  return graphics;
+}
+
+/**
+ * Launches the game. This should be executed when the document finishes loading.
+ */
+function launch () {
+  // Setup game
+  var game = new Phaser.Game(document.body.offsetWidth, window.innerHeight, Phaser.AUTO, 'game');
+  game.state.add('game', Cultrum, true);
+}
