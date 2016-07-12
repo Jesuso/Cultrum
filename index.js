@@ -11,7 +11,16 @@ app.use('/scripts', express.static(__dirname + '/node_modules/'));
 
 io.on('connection', function (socket) {
   socket.emit('news', { hello: 'world' });
+
   socket.on('my other event', function (data) {
     console.log(data);
   });
+
+  socket.on('keydown', function (data) {
+    console.log('Key Down! ', data);
+  })
+
+  socket.on('keyup', function (data) {
+    console.log('Key Up! ', data);
+  })
 });

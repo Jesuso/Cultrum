@@ -35,8 +35,14 @@ Cultrum.prototype.create = function () {
   this.player = Cultrum.Player.CreateSprite(this.game);
   Cultrum.Player.CreateSprite(this.game);
 
-  // Listen for clicks and move the character
-  this.game.input.onDown.add(this.moveCharacter, this);
+  // Init the game controls
+  // this.game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W, Phaser.Keyboard.A, Phaser.Keyboard.S, Phaser.Keyboard.D ]);
+  this.controls = {};
+  this.controls.upKey = this.game.input.keyboard.addKey(Phaser.Keyboard.W);
+  this.controls.leftKey = this.game.input.keyboard.addKey(Phaser.Keyboard.A);
+  this.controls.downKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
+	this.controls.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.D);
+  this.game.input.keyboard.addCallbacks(this, Cultrum.onKeyDown, Cultrum.onKeyUp);
 
   // Add a line that we'll use to point the move direction
   this.line = new Phaser.Line(this.player.x, this.player.y, 0, 0);
@@ -88,6 +94,56 @@ Cultrum.prototype.render = function () {
   this.game.debug.geom(this.line, 'rgb(0,255,0)');
 }
 
+/**
+ * Tells the server when certain keys are pressed.
+ */
+Cultrum.onKeyDown = function (event) {
+  // Up
+  if (event.keyCode == Phaser.Keyboard.W && this.controls.upKey.justDown) {
+    socket.emit('keydown', { key: 'up' });
+  }
+
+  // Left
+  if (event.keyCode == Phaser.Keyboard.A && this.controls.leftKey.justDown) {
+    socket.emit('keydown', { key: 'left' });
+  }
+
+  // Down
+  if (event.keyCode == Phaser.Keyboard.S && this.controls.downKey.justDown) {
+    socket.emit('keydown', { key: 'down' });
+  }
+
+  // Right
+  if (event.keyCode == Phaser.Keyboard.D && this.controls.rightKey.justDown) {
+    socket.emit('keydown', { key: 'right' });
+  }
+};
+
+/**
+ * Tells the server when certain keys are released.
+ */
+Cultrum.onKeyUp = function () {
+  // Up
+  if (event.keyCode == Phaser.Keyboard.W && this.controls.upKey.justUp) {
+    socket.emit('keyup', { key: 'up' });
+  }
+
+  // Left
+  if (event.keyCode == Phaser.Keyboard.A && this.controls.leftKey.justUp) {
+    socket.emit('keyup', { key: 'left' });
+  }
+
+  // Down
+  if (event.keyCode == Phaser.Keyboard.S && this.controls.downKey.justUp) {
+    socket.emit('keyup', { key: 'down' });
+  }
+
+  // Right
+  if (event.keyCode == Phaser.Keyboard.D && this.controls.rightKey.justUp) {
+    socket.emit('keyup', { key: 'right' });
+  }
+};
+
 Cultrum.prototype.moveCharacter = function (pointer) {
   // Set the character rotation
   this.player.rotation = this.game.physics.arcade.angleToPointer(this.player, pointer);
@@ -123,7 +179,7 @@ Cultrum.Tree = function () {}
  * Runs when a player clicks the tree.
  */
 Cultrum.Tree.onClick = function () {
-  // 
+  //
 }
 
 /**
