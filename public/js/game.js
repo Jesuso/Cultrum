@@ -7,12 +7,20 @@ Cultrum.prototype.preload = function () {
 };
 
 Cultrum.prototype.create = function () {
-  this.player = null;
+  // Players currently online
+  this.players = [];
+
+  // Points to the current player
+  this.me = null;
+
   this.speed = 200;
   this.trees = [];
 
   // Advanced profiling, including the fps rate, fps min/max, suggestedFps and msMin/msMax are updated
   this.game.time.advancedTiming = true;
+
+  // Connect to the server
+  this.connection();
 
   // Change the BG color
   this.game.stage.backgroundColor = 0x4488cc;
@@ -31,10 +39,6 @@ Cultrum.prototype.create = function () {
     tree.events.onInputDown.add(function (tree) { tree.kill(); });
   }
 
-  // Add a player
-  this.player = Cultrum.Player.CreateSprite(this.game);
-  Cultrum.Player.CreateSprite(this.game);
-
   // Init the game controls
   // this.game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W, Phaser.Keyboard.A, Phaser.Keyboard.S, Phaser.Keyboard.D ]);
   this.controls = {};
@@ -42,45 +46,48 @@ Cultrum.prototype.create = function () {
   this.controls.leftKey = this.game.input.keyboard.addKey(Phaser.Keyboard.A);
   this.controls.downKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
 	this.controls.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.D);
-  this.game.input.keyboard.addCallbacks(this, Cultrum.onKeyDown, Cultrum.onKeyUp);
-
-  // Add a line that we'll use to point the move direction
-  this.line = new Phaser.Line(this.player.x, this.player.y, 0, 0);
+  this.game.input.keyboard.addCallbacks(this, this.onKeyDown, this.onKeyUp);
 }
 
 Cultrum.prototype.update = function () {
-  this.line.start = this.player.position;
-  this.line.end = this.game.input.activePointer.position;
+  if (this.me) {
+    // Show the line
+    this.line = new Phaser.Line(this.me.x, this.me.y, 0, 0);
+    this.line.start = this.me.position;
+    this.line.end = this.game.input.activePointer.position;
 
-  // Ray casting!
-  // Check for any possible intersections along the way.
-  this.trees.forEach(function (tree) {
-    var ray = new Phaser.Line(this.player.x, this.player.y, this.game.input.activePointer.x, this.game.input.activePointer.y);
+    this.game.debug.geom(this.line, 'rgb(0,255,0)');
 
-    // Create an array of lines that represent the four edges of each tree
-    var lines = [
-        new Phaser.Line(tree.x, tree.y, tree.x + tree.width, tree.y),
-        new Phaser.Line(tree.x, tree.y, tree.x, tree.y + tree.height),
-        new Phaser.Line(tree.x + tree.width, tree.y, tree.x + tree.width, tree.y + tree.height),
-        new Phaser.Line(tree.x, tree.y + tree.height, tree.x + tree.width, tree.y + tree.height)
-    ];
+    // Ray casting!
+    // Check for any possible intersections along the way.
+    this.trees.forEach(function (tree) {
+      var ray = new Phaser.Line(this.me.x, this.me.y, this.game.input.activePointer.x, this.game.input.activePointer.y);
 
-    // Test each of the edges in this tree against the ray.
-    // If the ray intersects any of the edges then the tree must be in the way.
-    for (var i = 0; i < lines.length; i++) {
-      // this.game.debug.geom(lines[i], 'rgb(0,255,0)');
-      var intersect = Phaser.Line.intersects(ray, lines[i]);
+      // Create an array of lines that represent the four edges of each tree
+      var lines = [
+          new Phaser.Line(tree.x, tree.y, tree.x + tree.width, tree.y),
+          new Phaser.Line(tree.x, tree.y, tree.x, tree.y + tree.height),
+          new Phaser.Line(tree.x + tree.width, tree.y, tree.x + tree.width, tree.y + tree.height),
+          new Phaser.Line(tree.x, tree.y + tree.height, tree.x + tree.width, tree.y + tree.height)
+      ];
 
-      if (intersect) {
-        distance = this.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y);
-        tree.tint = 0xff0000;
-        // game.debug.spriteBounds(tree, null, false);
-        break;
-      } else {
-        tree.tint = 0xffffff;
+      // Test each of the edges in this tree against the ray.
+      // If the ray intersects any of the edges then the tree must be in the way.
+      for (var i = 0; i < lines.length; i++) {
+        // this.game.debug.geom(lines[i], 'rgb(0,255,0)');
+        var intersect = Phaser.Line.intersects(ray, lines[i]);
+
+        if (intersect) {
+          distance = this.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y);
+          tree.tint = 0xff0000;
+          // game.debug.spriteBounds(tree, null, false);
+          break;
+        } else {
+          tree.tint = 0xffffff;
+        }
       }
-    }
-  }, this);
+    }, this);
+  }
 }
 
 Cultrum.prototype.render = function () {
@@ -89,58 +96,101 @@ Cultrum.prototype.render = function () {
 
   // Show FPS
   this.game.debug.text(this.game.time.fps || '--', 2, 14, "#00FF00");
-
-  // Show the line
-  this.game.debug.geom(this.line, 'rgb(0,255,0)');
 }
+
+Cultrum.prototype.connection = function () {
+  // Keep a reference to the "this" so we can use it inside our anon functions
+  var SELF = this;
+
+  this.socket = io('http://localhost');
+
+  // Handles player joins
+  this.socket.on('join', function (data) {
+    console.log('Player joined: ', data);
+
+    // Add a player
+    var player = Cultrum.Player.CreateSprite(SELF.game);
+    player.id = data.id;
+    SELF.players.push(player);
+  });
+
+  // Handles your own join
+  this.socket.on('online', function (data) {
+    console.log('You are now online as player ' + data.id);
+    SELF.me = SELF.getPlayerById(data.id);
+  });
+
+  this.socket.on('leave', function (data) {
+    console.log('Player left: ', data);
+  });
+
+  this.socket.on('keydown', function (data) {
+    console.log('Player keydown: ', data);
+  });
+
+  this.socket.on('keyup', function (data) {
+    console.log('Player keyup: ', data);
+  });
+}
+
+Cultrum.prototype.getPlayerById = function (id) {
+  var player = null;
+
+  this.players.forEach(function (p) {
+    if (p.id === id)
+      return player = p;
+  });
+
+  return player;
+};
 
 /**
  * Tells the server when certain keys are pressed.
  */
-Cultrum.onKeyDown = function (event) {
+Cultrum.prototype.onKeyDown = function (event) {
   // Up
   if (event.keyCode == Phaser.Keyboard.W && this.controls.upKey.justDown) {
-    socket.emit('keydown', { key: 'up' });
+    this.socket.emit('keydown', { key: 'up' });
   }
 
   // Left
   if (event.keyCode == Phaser.Keyboard.A && this.controls.leftKey.justDown) {
-    socket.emit('keydown', { key: 'left' });
+    this.socket.emit('keydown', { key: 'left' });
   }
 
   // Down
   if (event.keyCode == Phaser.Keyboard.S && this.controls.downKey.justDown) {
-    socket.emit('keydown', { key: 'down' });
+    this.socket.emit('keydown', { key: 'down' });
   }
 
   // Right
   if (event.keyCode == Phaser.Keyboard.D && this.controls.rightKey.justDown) {
-    socket.emit('keydown', { key: 'right' });
+    this.socket.emit('keydown', { key: 'right' });
   }
 };
 
 /**
  * Tells the server when certain keys are released.
  */
-Cultrum.onKeyUp = function () {
+Cultrum.prototype.onKeyUp = function () {
   // Up
   if (event.keyCode == Phaser.Keyboard.W && this.controls.upKey.justUp) {
-    socket.emit('keyup', { key: 'up' });
+    this.socket.emit('keyup', { key: 'up' });
   }
 
   // Left
   if (event.keyCode == Phaser.Keyboard.A && this.controls.leftKey.justUp) {
-    socket.emit('keyup', { key: 'left' });
+    this.socket.emit('keyup', { key: 'left' });
   }
 
   // Down
   if (event.keyCode == Phaser.Keyboard.S && this.controls.downKey.justUp) {
-    socket.emit('keyup', { key: 'down' });
+    this.socket.emit('keyup', { key: 'down' });
   }
 
   // Right
   if (event.keyCode == Phaser.Keyboard.D && this.controls.rightKey.justUp) {
-    socket.emit('keyup', { key: 'right' });
+    this.socket.emit('keyup', { key: 'right' });
   }
 };
 

@@ -10,17 +10,22 @@ app.use(express.static('public'));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
 
 io.on('connection', function (socket) {
-  socket.emit('news', { hello: 'world' });
+  console.log('Player joined: ' + socket.conn.id);
 
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
+  // Tell everyone someone joined
+  io.emit('join', { id: socket.conn.id });
+  // And tell the user that join was himself !!!
+  socket.emit('online', { id: socket.conn.id });
 
   socket.on('keydown', function (data) {
     console.log('Key Down! ', data);
-  })
+    // Tell everyone about this movement
+    io.emit('keydown', {player: socket.conn.id, key: data.key});
+  });
 
   socket.on('keyup', function (data) {
+    // Tell everyone about this movement
     console.log('Key Up! ', data);
-  })
+    io.emit('keyup', {player: socket.conn.id, key: data.key});
+  });
 });
