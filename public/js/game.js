@@ -38,22 +38,18 @@ Cultrum.prototype.create = function () {
     tree.events.onInputOut.add(function (tree) { tree.tint = 0xffffff;   });
     tree.events.onInputDown.add(function (tree) { tree.kill(); });
   }
-
-  // Init the game controls
-  // this.game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W, Phaser.Keyboard.A, Phaser.Keyboard.S, Phaser.Keyboard.D ]);
-  this.controls = {};
-  this.controls.upKey = this.game.input.keyboard.addKey(Phaser.Keyboard.W);
-  this.controls.leftKey = this.game.input.keyboard.addKey(Phaser.Keyboard.A);
-  this.controls.downKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
-	this.controls.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.D);
-  this.game.input.keyboard.addCallbacks(this, this.onKeyDown, this.onKeyUp);
 }
 
 Cultrum.prototype.update = function () {
+  // Move players
+  this.players.forEach(function (player) {
+    player.processMove();
+  });
+
   if (this.me) {
     // Show the line
     this.line = new Phaser.Line(this.me.x, this.me.y, 0, 0);
-    this.line.start = this.me.position;
+    this.line.start = this.me.graphics.position;
     this.line.end = this.game.input.activePointer.position;
 
     this.game.debug.geom(this.line, 'rgb(0,255,0)');
@@ -118,6 +114,16 @@ Cultrum.prototype.connection = function () {
   this.socket.on('online', function (data) {
     console.log('You are now online as player ' + data.id);
     SELF.me = SELF.getPlayerById(data.id);
+
+    // Init the game controls
+    // this.game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W, Phaser.Keyboard.A, Phaser.Keyboard.S, Phaser.Keyboard.D ]);
+    SELF.controls = {};
+    SELF.controls.upKey = SELF.game.input.keyboard.addKey(Phaser.Keyboard.W);
+    SELF.controls.leftKey = SELF.game.input.keyboard.addKey(Phaser.Keyboard.A);
+    SELF.controls.downKey = SELF.game.input.keyboard.addKey(Phaser.Keyboard.S);
+  	SELF.controls.rightKey = SELF.game.input.keyboard.addKey(Phaser.Keyboard.D);
+    SELF.game.input.keyboard.addCallbacks(SELF, SELF.onKeyDown, SELF.onKeyUp);
+    console.debug("Controls initialized");
   });
 
   this.socket.on('leave', function (data) {
@@ -125,11 +131,43 @@ Cultrum.prototype.connection = function () {
   });
 
   this.socket.on('keydown', function (data) {
-    console.log('Player keydown: ', data);
+    var player = SELF.getPlayerById(data.player);
+    switch (data.key) {
+      case 'up':
+        player.controls.upKey = true;
+        break;
+      case 'left':
+        player.controls.leftKey = true;
+        break;
+      case 'down':
+        player.controls.downKey = true;
+        break;
+      case 'right':
+        player.controls.rightKey = true;
+        break;
+      default:
+        console.error('KEY NOT RECOGNIZED!');
+    }
   });
 
   this.socket.on('keyup', function (data) {
-    console.log('Player keyup: ', data);
+    var player = SELF.getPlayerById(data.player);
+    switch (data.key) {
+      case 'up':
+        player.controls.upKey = false;
+        break;
+      case 'left':
+        player.controls.leftKey = false;
+        break;
+      case 'down':
+        player.controls.downKey = false;
+        break;
+      case 'right':
+        player.controls.rightKey = false;
+        break;
+      default:
+        console.error('KEY NOT RECOGNIZED!');
+    }
   });
 }
 
@@ -208,17 +246,53 @@ Cultrum.prototype.moveCharacter = function (pointer) {
 
 Cultrum.Player = function () {}
 
+/**
+ * Creates a new player
+ *
+ * TODO. Do not return the graphics directly, but an object containing the
+ * graphics, controls, stats, etc.
+ */
 Cultrum.Player.CreateSprite = function (game) {
-  var graphics = game.add.graphics(32, 32);
-  graphics.beginFill(0xff0000);
-  graphics.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
-  graphics.moveTo(0, -16);
-  graphics.lineTo(16, 0);
-  graphics.lineTo(0, 16);
-  graphics.endFill();
+  var player = new Cultrum.Player();
 
-  return graphics;
+  player.graphics = game.add.graphics(32, 32);
+  player.graphics.beginFill(0xff0000);
+  player.graphics.arc(0, 0, 16, 90 * (Math.PI / 180), 270 * (Math.PI / 180), false, 8);
+  player.graphics.moveTo(0, -16);
+  player.graphics.lineTo(16, 0);
+  player.graphics.lineTo(0, 16);
+  player.graphics.endFill();
+
+  // Initialize the player movement keys as "up"
+  player.controls = {};
+  player.controls.upKey = false;
+  player.controls.leftKey = false;
+  player.controls.downKey = false;
+  player.controls.rightKey = false;
+
+  return player;
 }
+
+/**
+ * Moves the player around depending on its currently pressed keys.
+ */
+Cultrum.Player.prototype.processMove = function () {
+  if (this.controls.upKey) {
+    this.graphics.y -= 1;
+  }
+
+  if (this.controls.leftKey) {
+    this.graphics.x -= 1;
+  }
+
+  if (this.controls.downKey) {
+    this.graphics.y += 1;
+  }
+
+  if (this.controls.rightKey) {
+    this.graphics.x += 1;
+  }
+};
 
 /**
  * A tree entity, this should extend a more basic class in the future
