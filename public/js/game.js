@@ -98,7 +98,7 @@ Cultrum.prototype.connection = function () {
   // Keep a reference to the "this" so we can use it inside our anon functions
   var SELF = this;
 
-  this.socket = io('http://localhost');
+  this.socket = io();
 
   // Handles player joins
   this.socket.on('join', function (data) {

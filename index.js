@@ -4,7 +4,7 @@ var app = module.exports.app = express();
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
 
-server.listen(80);  //listen on port 80
+server.listen(8080);  //listen on port 80
 
 app.use(express.static('public'));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
